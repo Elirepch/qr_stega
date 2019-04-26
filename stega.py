@@ -27,18 +27,13 @@ class Stega:
 
     def encode(self,address_img,coords = (0,0,150,150)):
         img = Image.open(address_img)
-        imgqr = Image.open("qr.png")
+        self.imgqr = self.imgqr.remove_bg()
         img = img.convert("RGBA")
         img_data = img.getdata()
-        qr_data = imgqr.getdata()
+        qr_data = self.imgqr.getdata()
 
         if img.size[0] < 150 or img.size[1] < 150:
-            raise Exception("Photo is smaller than 150x150.\n Please use a photo with larger dimensions.")
-        if img.size[0] > 150 or img.size[1] > 150:
-            img_full = img
-            img = img.crop(coords)
-            img_data = img.getdata()
-        
+            raise Exception("Photo is smaller than 150x150.\n Please use a photo with larger dimensions.") 
         lst = [list(elem) for elem in img_data]
         for i in range(len(img_data)):
             if qr_data[i][0] == 0:
