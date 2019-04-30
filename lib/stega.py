@@ -1,10 +1,15 @@
 import numpy as np
 import qrcode
 from PIL import Image, ImageDraw
-
+'''
+TODO:
+complication of the encoding algorithm (specifically the summing of the rgba values)
+to  
+variable placing of the qr code on the image
+'''
 
 class Stega:
-    def __init__(self, im_address, qr_text, mode, output):
+    def __init__(self, im_address, qr_text = "", mode="", output="output.png",x_pos = 0, y_pos = 0):
         """
         Initiallizes the variables and encodes,decodes or both
         with the corresponding codes(non case sensetive){e,d,b}.
@@ -13,6 +18,8 @@ class Stega:
         self.im_address = im_address
         self.qr_text = qr_text
         self.mode = mode
+        self.x_pos = x_pos
+        self.y_pos = y_pos
   
         if self.qr_text is not None and self.mode == "E" or self.mode == "e":
             self.encode()
@@ -47,10 +54,12 @@ class Stega:
         self.create_qr()
         self.img = Image.open(self.im_address)
         self.img_arr = np.array(self.img.getdata(),dtype = "uint8").reshape(self.img.size[0],self.img.size[1],4)
+        
         self.qr_arr = np.array(self.qr_img.getdata()).reshape(self.qr_img.size[0],self.qr_img.size[1])
 
+        img_proc = self.img_arr[self.x_pos: ,self.y_pos:]
         # Apply logic
-        
+         
         # Iterate over the x,y coordinates of the qr image
         for y in range(self.qr_arr.shape[1]):
             for x in range(self.qr_arr.shape[1]):
@@ -59,11 +68,11 @@ class Stega:
                 # current image cell is odd.
                 # Otherwise make sure its even.
                 if self.qr_arr[x][y] == 0:
-                    if sum(self.img_arr[x][y]) % 2 == 0:
-                        self.img_arr[x][y][0] += 1
+                    if sum(img_proc[x][y]) % 2 == 0:
+                        img_proc[x][y][0] += 1
                 elif self.qr_arr[x][y] == 255:
-                    if sum(self.img_arr[x][y]) % 2 == 1:
-                        self.img_arr[x][y][0] -= 1 
+                    if sum(img_proc[x][y]) % 2 == 1:
+                        img_proc[x][y][0] -= 1 
 
         # Create a new image from the mutated array
         self.img = Image.fromarray(self.img_arr)
