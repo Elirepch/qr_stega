@@ -4,16 +4,19 @@ from PIL import Image, ImageDraw
 
 
 class Stega:
-    def __init__(self, im_address, qr_text = "", mode = ""):
+    def __init__(self, im_address, qr_text, mode, output):
         """
         Initiallizes the variables and encodes,decodes or both
         with the corresponding codes(non case sensetive){e,d,b}.
         """
+        self.output = output      
         self.im_address = im_address
         self.qr_text = qr_text
-        if self.qr_text is not None and mode == "E" or mode == "e":
+        self.mode = mode
+  
+        if self.qr_text is not None and self.mode == "E" or self.mode == "e":
             self.encode()
-        elif self.qr_text is None and mode == "E" or mode == "e":
+        elif self.qr_text is None and self.mode == "E" or self.mode == "e":
             raise Exception('"qr_text" argument has to be filled.')
         elif mode == "D" or mode == "d":
             self.decode()
@@ -24,8 +27,8 @@ class Stega:
         to be done on if the image is needed at all. will need refactoring.
         """
         self.qr_data = qrcode.QRCode(
-                version=1,
-                error_correction=qrcode.constants.ERROR_CORRECT_M,
+                version=2,
+                error_correction=qrcode.constants.ERROR_CORRECT_L,
                 box_size=2,
                 border=2
             )
@@ -35,13 +38,10 @@ class Stega:
     
     def encode(self):
         """
-        Embeds qr code inside of image using the following logic:
-        For each of the pixels in qr, if the pixel in qr is black
-        make sure the corresponding r,g,b sum of the pixel in the image is odd
-        otherwise make sure it's even.
-        For example if we stumble upon a black pixel in the qr code
-        and the image's rgb sum is 300, then add one.
-        If the pixel were white we would move to the next pixel.
+        Embeds the qr code into the image using the following logic:
+        If the current pixel in the qr code is black; then make sure
+        the RGB sum of the image at that pixel is odd.
+        else make sure its even.
         """
         # Load the data
         self.create_qr()
@@ -53,7 +53,7 @@ class Stega:
         
         # Iterate over the x,y coordinates of the qr image
         for y in range(self.qr_arr.shape[1]):
-            for x in range(self.qr_arr.shape[0]):
+            for x in range(self.qr_arr.shape[1]):
                 # If the current coordinate in the qr code array
                 # is black (False) then make sure the sum of the
                 # current image cell is odd.
@@ -63,28 +63,32 @@ class Stega:
                         self.img_arr[x][y][0] += 1
                 elif self.qr_arr[x][y] == 255:
                     if sum(self.img_arr[x][y]) % 2 == 1:
-                        self.img_arr[x][y][0] -= 1
+                        self.img_arr[x][y][0] -= 1 
 
         # Create a new image from the mutated array
         self.img = Image.fromarray(self.img_arr)
         # Save the file
-        self.img.save('stega.png',"PNG")
+        self.img.save(self.output,"PNG")
+
 
     def decode(self):
+        """
+	Decodes an image with that has a qr code embedded in it
+        using the technique used in this program.
+        for each pixel in the image it checks if its
+	odd or even and draws a black or white pixel accordingly
+	"""
         # Load data
         self.img = Image.open(self.im_address)
         self.img_arr = np.array(self.img.getdata(),dtype = "uint8").reshape(self.img.size[0],self.img.size[1],4)
         # Prepare to draw
         self.new = Image.new("L", self.img.size,(255))
         self.draw = ImageDraw.Draw(self.new)
-        
-        for x in range(self.img_arr.shape[1]):
-            for y in range(self.img_arr.shape[0]):
+        # Draw the decoded image
+        for y in range(self.img_arr.shape[1]):
+            for x in range(self.img_arr.shape[0]):
                 if sum(self.img_arr[x][y]) % 2 == 1:
                     self.draw.point((x,y),(0))
                 else:
                     pass
-        self.new.save("decoded.png","PNG")
-
-x = Stega("flower.png", "Steganography","E")
-y = Stega("stega.png", mode = "D")
+        self.new.save(self.output,"PNG")
